@@ -45,16 +45,26 @@ body.play{cursor:none}
 #fx{position:fixed;inset:0;width:100%;height:100%;z-index:4;pointer-events:none}
 #ok{position:fixed;inset:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2.4vmin;opacity:0;pointer-events:none;transition:opacity .5s}
 #ok.show{opacity:1}
-#ok svg{width:20vmin;height:20vmin}
-#ok circle{stroke:#F2C078;stroke-width:4;fill:rgba(206,150,90,.12);stroke-dasharray:290;stroke-dashoffset:290}
+#ok>svg{width:20vmin;height:20vmin}
+#ok>svg circle{stroke:#F2C078;stroke-width:4;fill:rgba(206,150,90,.12);stroke-dasharray:290;stroke-dashoffset:290}
 #ok path{stroke:#fff;stroke-width:6;stroke-linecap:round;stroke-linejoin:round;fill:none;stroke-dasharray:70;stroke-dashoffset:70}
-#ok.show circle{animation:draw .7s ease-out forwards}#ok.show path{animation:draw .45s .55s ease-out forwards}
+#ok.show>svg circle{animation:draw .7s ease-out forwards}#ok.show path{animation:draw .45s .55s ease-out forwards}
 @keyframes draw{to{stroke-dashoffset:0}}
 #ok h2{font-size:7vmin;font-weight:700}#ok h2 b{color:#CE965A}
-#ok p{font-size:3.2vmin;font-weight:600;color:#E9C9A0}
-#cnt{font-size:11vmin;font-weight:700;color:#F2C078;line-height:1;min-height:11vmin;direction:ltr}
-#cnt.pop{animation:pop .8s ease-out}
-@keyframes pop{0%{transform:scale(1.7);opacity:0}25%{opacity:1}100%{transform:scale(1);opacity:1}}
+#ok.count>svg{display:none}
+#cw{position:relative;width:54vmin;height:54vmin;display:none;align-items:center;justify-content:center}
+#ok.count #cw{display:flex}
+#cw svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+#cw .tr{fill:none;stroke:rgba(206,150,90,.22);stroke-width:2}
+#cw .pr{fill:none;stroke:#F2C078;stroke-width:4;stroke-linecap:round;stroke-dasharray:339.3;stroke-dashoffset:0;filter:drop-shadow(0 0 1.5vmin rgba(242,192,120,.9))}
+#cw .pr.run{animation:ring .85s linear forwards}
+@keyframes ring{from{stroke-dashoffset:0}to{stroke-dashoffset:339.3}}
+#cw .rp{position:absolute;inset:0;border-radius:50%;border:2px solid #F2C078;opacity:0}
+#cw .rp.run{animation:rp .85s ease-out}
+@keyframes rp{0%{transform:scale(.8);opacity:.9}100%{transform:scale(1.7);opacity:0}}
+#cnt{position:relative;font-size:36vmin;font-weight:700;line-height:1;direction:ltr;background:linear-gradient(180deg,#fff 10%,#F2C078 55%,#CE965A 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 0 3vmin rgba(242,192,120,.55))}
+#cnt.pop{animation:pop .85s cubic-bezier(.2,1.4,.4,1)}
+@keyframes pop{0%{transform:scale(1.8);opacity:0}30%{opacity:1}100%{transform:scale(1);opacity:1}}
 body.ok #stage{opacity:0;transform:scale(.9);pointer-events:none}
 </style>
 </head>
@@ -82,7 +92,7 @@ body.ok #stage{opacity:0;transform:scale(.9);pointer-events:none}
   <div id="hint">ضع بصمتك لتدشين الدليل</div>
 </div>
 <canvas id="fx"></canvas>
-<div id="ok"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/><path d="M30 52l14 14 27-30"/></svg><h2>تم <b>التدشين</b></h2><p>ينطلق العرض الآن</p><div id="cnt"></div></div>
+<div id="ok"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="46"/><path d="M30 52l14 14 27-30"/></svg><h2>تم <b>التدشين</b></h2><div id="cw"><svg viewBox="0 0 120 120"><circle class="tr" cx="60" cy="60" r="54"/><circle class="pr" id="pr" cx="60" cy="60" r="54"/></svg><i class="rp"></i><div id="cnt"></div></div></div>
 <div id="flash"></div>
 <video id="v" src="video.mp4" preload="auto" playsinline webkit-playsinline disablepictureinpicture x-webkit-airplay="deny"></video>
 <script>
@@ -110,14 +120,16 @@ function tick(now){const dt=(now-last)/1000;last=now;
   if(prog>=1&&!done){if(unlocked){launch();}else{waiting=true;hint.textContent='ارفع إصبعك لبدء العرض';}return;}
   if(prog>0||active)requestAnimationFrame(tick);else{scan.style.opacity=0;pct.style.opacity=0;}}
 const okEl=document.getElementById('ok'),cnt=document.getElementById('cnt'),fx=document.getElementById('fx');let timer;
+const pr=document.getElementById('pr'),rp=document.querySelector('#cw .rp');
+function beep(n){try{const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime;o.frequency.value=n===1?880:660;g.gain.setValueAtTime(.1,t);g.gain.exponentialRampToValueAtTime(.0001,t+.25);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+.3);}catch(e){}}
 function chime(){try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();[523,659,784,1047].forEach((f,i)=>{const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime+i*.13;o.frequency.value=f;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.09,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+.9);o.connect(g).connect(ac.destination);o.start(t);o.stop(t+1);});}catch(e){}}
 function burst(){const c=fx.getContext('2d'),W=fx.width=innerWidth,H=fx.height=innerHeight,cols=['#F2C078','#CE965A','#fff','#E9C9A0'],ps=[];for(let i=0;i<160;i++){const a=Math.random()*6.283,s=4+Math.random()*13;ps.push({x:W/2,y:H/2,vx:Math.cos(a)*s,vy:Math.sin(a)*s-4,r:4+Math.random()*9,c:cols[i%4],l:1,w:Math.random()*6.283});}
   (function f(){c.clearRect(0,0,W,H);let alive=false;ps.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.22;p.vx*=.985;p.l-=.008;p.w+=.2;if(p.l>0){alive=true;c.globalAlpha=p.l;c.fillStyle=p.c;c.fillRect(p.x,p.y,p.r*(1+Math.sin(p.w)*.5),p.r*1.6);}});c.globalAlpha=1;if(alive&&done)requestAnimationFrame(f);else c.clearRect(0,0,W,H);})();}
 function launch(){if(done)return;done=true;tone(false);scan.style.opacity=0;document.body.classList.add('ok');okEl.classList.add('show');chime();burst();
-  let n=3;const step=()=>{if(!done)return;if(n>0){cnt.textContent=n;cnt.classList.remove('pop');void cnt.offsetWidth;cnt.classList.add('pop');n--;timer=setTimeout(step,850);}else{okEl.classList.remove('show');flash.classList.add('go');timer=setTimeout(reveal,550);}};
+  let n=3;const step=()=>{if(!done)return;if(n>0){okEl.classList.add('count');cnt.textContent=n;[cnt,pr,rp].forEach(e=>e.classList.remove('pop','run'));void cnt.offsetWidth;cnt.classList.add('pop');pr.classList.add('run');rp.classList.add('run');beep(n);n--;timer=setTimeout(step,850);}else{okEl.classList.remove('show');flash.classList.add('go');timer=setTimeout(reveal,550);}};
   timer=setTimeout(step,1300);}
 function reveal(){document.body.classList.add('play');try{v.currentTime=0;}catch(e){}v.muted=false;const r=v.play();if(r&&r.catch)r.catch(()=>{v.muted=true;v.play().catch(()=>{});});}
-function reset(){clearTimeout(timer);document.body.classList.remove('ok');okEl.classList.remove('show');cnt.textContent='';waiting=false;unlocked=false;done=false;active=false;prog=0;v.pause();v.currentTime=0;document.body.classList.remove('play');flash.classList.remove('go');fp.classList.remove('on');
+function reset(){clearTimeout(timer);document.body.classList.remove('ok');okEl.classList.remove('show','count');cnt.textContent='';waiting=false;unlocked=false;done=false;active=false;prog=0;v.pause();v.currentTime=0;document.body.classList.remove('play');flash.classList.remove('go');fp.classList.remove('on');
   clipR.setAttribute('y',130);pct.style.opacity=0;pct.textContent='0%';hint.textContent='ضع بصمتك لتدشين الدليل';hint.style.animation='';}
 fp.addEventListener('pointerdown',start);
 ['pointerup','touchend','click'].forEach(n=>fp.addEventListener(n,unlock));
