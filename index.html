@@ -10,9 +10,9 @@
 <meta name="theme-color" content="#33000f">
 <title>تدشين دليل المشاريع الريادية بالجوف</title>
 <style>
-@font-face{font-family:Plex;font-weight:400;src:url(fonts/IBMPlexSansArabic-Regular.woff2)}
-@font-face{font-family:Plex;font-weight:600;src:url(fonts/IBMPlexSansArabic-SemiBold.woff2)}
-@font-face{font-family:Plex;font-weight:700;src:url(fonts/IBMPlexSansArabic-Bold.woff2)}
+@font-face{font-family:Plex;font-weight:400;src:url(IBMPlexSansArabic-Regular.woff2)}
+@font-face{font-family:Plex;font-weight:600;src:url(IBMPlexSansArabic-SemiBold.woff2)}
+@font-face{font-family:Plex;font-weight:700;src:url(IBMPlexSansArabic-Bold.woff2)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 html,body{height:100%;overflow:hidden;position:fixed;inset:0;width:100%;overscroll-behavior:none;touch-action:none;background:#2a000d;font-family:Plex,system-ui,sans-serif;color:#fff;cursor:default}
 #bg{position:fixed;inset:0;background:radial-gradient(60% 70% at 62% 30%,#8f0a22 0%,#5a0018 45%,#33000f 100%)}
@@ -78,7 +78,8 @@ const fp=document.getElementById('fp'),clipR=document.getElementById('clipR'),sc
       pct=document.getElementById('pct'),hint=document.getElementById('hint'),v=document.getElementById('v'),flash=document.getElementById('flash');
 let prog=0,active=false,done=false,last=0,ac,osc,gain,unlocked=false,waiting=false;
 function fs(){const d=document.documentElement,f=d.requestFullscreen||d.webkitRequestFullscreen;if(f&&!(document.fullscreenElement||document.webkitFullscreenElement)){try{const r=f.call(d);if(r&&r.catch)r.catch(()=>{});}catch(e){}}}
-function unlock(){if(unlocked)return;unlocked=true;try{const r=v.play();if(r&&r.then)r.then(()=>{if(!done){v.pause();v.currentTime=0;}}).catch(()=>{unlocked=false;});}catch(e){unlocked=false;}fs();if(waiting){waiting=false;launch();}}
+const TOUCH=(navigator.maxTouchPoints||0)>0;
+function unlock(){if(unlocked)return;unlocked=true;try{v.muted=true;const r=v.play();if(r&&r.catch)r.catch(()=>{});}catch(e){}if(!TOUCH)fs();if(waiting){waiting=false;launch();}}
 function tone(on){try{
   if(on){ac=ac||new (window.AudioContext||window.webkitAudioContext)();ac.resume();osc=ac.createOscillator();gain=ac.createGain();osc.type='sine';osc.frequency.value=220;gain.gain.value=0;gain.gain.linearRampToValueAtTime(.06,ac.currentTime+.2);osc.connect(gain).connect(ac.destination);osc.start();}
   else if(osc){gain.gain.linearRampToValueAtTime(0,ac.currentTime+.25);osc.stop(ac.currentTime+.3);osc=null;}
@@ -93,14 +94,14 @@ function tick(now){const dt=(now-last)/1000;last=now;
   if(prog>=1&&!done){if(unlocked){launch();}else{waiting=true;hint.textContent='ارفع إصبعك لبدء العرض';}return;}
   if(prog>0||active)requestAnimationFrame(tick);else{scan.style.opacity=0;pct.style.opacity=0;}}
 function launch(){if(done)return;done=true;tone(false);scan.style.opacity=0;hint.textContent='تم التدشين';flash.classList.add('go');
-  setTimeout(()=>{document.body.classList.add('play');v.currentTime=0;v.play().catch(()=>{v.muted=true;v.play();});},550);}
-function reset(){waiting=false;done=false;active=false;prog=0;v.pause();v.currentTime=0;document.body.classList.remove('play');flash.classList.remove('go');fp.classList.remove('on');
+  setTimeout(()=>{document.body.classList.add('play');try{v.currentTime=0;}catch(e){}v.muted=false;const r=v.play();if(r&&r.catch)r.catch(()=>{v.muted=true;v.play().catch(()=>{});});},550);}
+function reset(){waiting=false;unlocked=false;done=false;active=false;prog=0;v.pause();v.currentTime=0;document.body.classList.remove('play');flash.classList.remove('go');fp.classList.remove('on');
   clipR.setAttribute('y',130);pct.style.opacity=0;pct.textContent='0%';hint.textContent='ضع بصمتك لتدشين الدليل';hint.style.animation='';}
 fp.addEventListener('pointerdown',start);
 ['pointerup','touchend','click'].forEach(n=>fp.addEventListener(n,unlock));
 ['gesturestart','gesturechange','dblclick'].forEach(n=>document.addEventListener(n,e=>e.preventDefault(),{passive:false}));
 document.addEventListener('touchmove',e=>e.preventDefault(),{passive:false});
-v.addEventListener('ended',()=>{v.pause();});
+v.addEventListener('pause',()=>{if(done&&!v.ended&&document.body.classList.contains('play'))setTimeout(()=>{if(v.paused&&!v.ended)v.play().catch(()=>{});},150);});
 ['pointerup','pointerleave','pointercancel'].forEach(n=>fp.addEventListener(n,stop));
 addEventListener('keydown',e=>{
   if(e.code==='Space'||e.code==='Enter'){e.preventDefault();start();unlock();}
