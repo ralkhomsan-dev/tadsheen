@@ -110,8 +110,8 @@ function audioOn(){try{ac=ac||new (window.AudioContext||window.webkitAudioContex
     const a=new Audio(URL.createObjectURL(new Blob([b],{type:'audio/wav'})));a.loop=true;a.setAttribute('playsinline','');const p=a.play();if(p&&p.catch)p.catch(()=>{});window.__sil=a;}}catch(e){}}
 function unlock(){audioOn();if(unlocked)return;unlocked=true;try{v.muted=true;const r=v.play();if(r&&r.catch)r.catch(()=>{});}catch(e){}if(!TOUCH)fs();if(waiting){waiting=false;launch();}}
 function tone(on){try{
-  if(on){ac=ac||new (window.AudioContext||window.webkitAudioContext)();ac.resume();osc=ac.createOscillator();gain=ac.createGain();osc.type='sine';osc.frequency.value=220;gain.gain.value=0;gain.gain.linearRampToValueAtTime(.1,ac.currentTime+.2);osc.connect(gain).connect(ac.destination);osc.start();}
-  else if(osc){gain.gain.linearRampToValueAtTime(0,ac.currentTime+.25);osc.stop(ac.currentTime+.3);osc=null;}
+  if(on){ac=ac||new (window.AudioContext||window.webkitAudioContext)();ac.resume();gain=ac.createGain();gain.gain.value=0;gain.gain.linearRampToValueAtTime(.16,ac.currentTime+1.2);const lp=ac.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1400;lp.connect(gain).connect(ac.destination);osc=[130.81,196,261.63,329.63,392].map((f,i)=>{const o=ac.createOscillator(),g=ac.createGain();o.type=i<2?'triangle':'sine';o.frequency.value=f;o.detune.value=i%2?4:-4;g.gain.value=i<2?.5:.3;o.connect(g).connect(lp);o.start();return o;});}
+  else if(osc){const t=ac.currentTime;gain.gain.cancelScheduledValues(t);gain.gain.setValueAtTime(gain.gain.value,t);gain.gain.linearRampToValueAtTime(0,t+.5);osc.forEach(o=>o.stop(t+.6));osc=null;}
 }catch(e){}}
 function start(e){if(e)e.preventDefault();if(done||active)return;active=true;fp.classList.add('on');hint.textContent='جارٍ التحقق من البصمة...';hint.style.animation='none';scan.style.opacity=1;pct.style.opacity=1;tone(true);
   last=performance.now();requestAnimationFrame(tick);}
@@ -119,7 +119,6 @@ function stop(){if(!NEED_HOLD||done)return;active=false;fp.classList.remove('on'
 function tick(now){const dt=(now-last)/1000;last=now;
   if(active)prog=Math.min(1,prog+dt/HOLD_SECONDS);else prog=Math.max(0,prog-dt/.6);
   clipR.setAttribute('y',130-prog*140);scan.style.top=(76-prog*52)+'%';pct.textContent=Math.round(prog*100)+'%';
-  if(osc)osc.frequency.value=220+prog*660;
   if(prog>=1&&!done){if(unlocked){launch();}else{waiting=true;hint.textContent='ارفع إصبعك لبدء العرض';}return;}
   if(prog>0||active)requestAnimationFrame(tick);else{scan.style.opacity=0;pct.style.opacity=0;}}
 const okEl=document.getElementById('ok'),cnt=document.getElementById('cnt'),fx=document.getElementById('fx');let timer;
